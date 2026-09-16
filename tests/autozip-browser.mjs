@@ -4,7 +4,7 @@ import {readFile,mkdir} from 'node:fs/promises';
 import {PDFDocument} from 'pdf-lib';
 import assert from 'node:assert/strict';
 await mkdir('tmp',{recursive:true});
-const browser=await chromium.launch({channel:'chrome'}),page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(process.env.APP_URL||'http://127.0.0.1:5178/');
+const browser=await chromium.launch({channel:'chrome'}),page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(process.env.APP_URL||'http://127.0.0.1:5178/');await page.locator('#native-layout').uncheck();
 const files=[];for(let n=0;n<33;n++)for(const role of ['Fehlerliste','mit_Randbemerkungen','mit_Randbemerkungen-korrektur'])files.push({name:`S4d_Testperson${n}_${role}.txt`,mimeType:'text/plain',buffer:Buffer.from('Vollständiger Testinhalt: ä ö ü')});
 files.push({name:'S4d_NochUnvollstaendig_Kommentar.txt',mimeType:'text/plain',buffer:Buffer.from('Fehlende Quellen werden sichtbar ausgewiesen')});
 const automatic=page.waitForEvent('download',{timeout:120000});await page.locator('#files').setInputFiles(files);await(await automatic).saveAs('tmp/automatic.zip');

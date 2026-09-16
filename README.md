@@ -2,6 +2,23 @@
 
 Deutschsprachige Web-App zum Zusammenstellen von Fehlerlisten, korrigierten Texten mit Randbemerkungen und Kommentaren. Mehrere Dossiers lassen sich einzeln als PDF oder gemeinsam als ZIP herunterladen.
 
+## Original-Word-Layout (Mac)
+
+Die Standardausgabe konvertiert DOCX mit **Microsoft Word auf dem eigenen Mac**. GitHub Pages kann selbst kein Word ausführen. Dafür enthält die Website einen Download **Word-Ausgabe für Mac herunterladen** (`Dossier-Word-Mac.zip`).
+
+1. Microsoft Word und Node.js 24 müssen installiert sein.
+2. ZIP entpacken, darin `local/Dossier-starten.command` doppelklicken.
+3. Die Anwendung öffnet sich unter `http://127.0.0.1:5186/`. Das Terminalfenster offen lassen.
+4. Falls macOS nachfragt, Terminal die Automatisierung von Microsoft Word erlauben. Word vollständig starten und eventuelle Dialoge schliessen.
+5. Dateien in der lokalen Anwendung auswählen. Word wird nacheinander mit temporären Kopien angesprochen. Währenddessen bitte nicht in Word arbeiten.
+6. Originale PDF-Inhalte werden in Dokumentreihenfolge verbunden; Word-Kommentare erhalten einen zusätzlichen Rand; es werden keine zusätzlichen Seitenzahlen auf die Originalseiten gemalt. Deckblatt ist optional. Anschliessend werden die Dossiers als ZIP heruntergeladen.
+
+Die Anbindung lauscht nur auf Loopback. Konvertierungsanfragen benötigen einen zufälligen Sitzungsschlüssel und den lokalen Origin. Keine Dokumente werden an GitHub oder einen externen Konvertierungsdienst geschickt. Temporäre Kopien werden nach dem Export entfernt. Makrodateien werden abgelehnt. Word exportiert das originale Textlayout. Da sein automatischer PDF-Export Kommentarblasen auslassen kann, liest die App alle Kommentare direkt aus DOCX und setzt sie mit vollständiger zitierter Textstelle in einen zusätzlichen 250-Punkt-Rand neben der passenden Originalseite. Die Seiten werden breiter, der Dokumenttext wird weder skaliert noch neu umbrochen. Lange Kommentare erhalten Fortsetzungsseiten. Nicht eindeutig einer Seite zuordenbare Kommentare erscheinen vollständig in einem gekennzeichneten Anhang. Dies ist keine exakte Nachbildung der Word-Kommentarblasen. Bei einem Word-Fehler gibt es **keinen stillen Rückfall** auf die Textausgabe. Nach einem Word-Zeitlimit ist ein Neustart des lokalen Starters erforderlich.
+
+Der ausdrücklich auswählbare **Textmodus** bleibt verfügbar. Er erhält das Original-Layout nicht. Vorhandene Projekte enthalten häufig nur den extrahierten Text; für einen Originalexport müssen die DOCX-Dateien neu importiert werden. ODT bleibt im Textmodus verfügbar; die Word-Anbindung unterstützt DOCX. Bereits fertige PDFs können direkt importiert werden.
+
+Entwicklung: `npm run build` baut Website und Mac-Downloadpaket; `npm run word` startet die lokale Ausgabe aus dem Checkout. Der folgende Formatabschnitt beschreibt, soweit nicht anders angegeben, den Textmodus.
+
 ## Verwendung
 
 1. Bis zu **100 Dateien pro Auswahl** gemeinsam auswählen oder ablegen. Ein Paket wird speicherschonend Datei für Datei verarbeitet; eine Fortschrittsanzeige zeigt den Stand. Fehler einzelner Dateien stoppen den restlichen Import nicht und bleiben im Importbericht sichtbar. Mehr als 100 Dateien werden ohne Teilimport abgewiesen; weitere Pakete können anschliessend ergänzt werden. Die aktuelle Registerkarte hat keinen Einfluss auf die automatische Zuordnung.
@@ -37,7 +54,7 @@ Die Randkommentar-Darstellung gilt auch für bereits gesicherte Projekte mit dem
 
 ## Datenschutz
 
-Dokumente werden ausschliesslich im Browser verarbeitet. Kein Backend, keine Analysewerkzeuge, keine externen Schrift- oder Bibliotheksaufrufe zur Laufzeit. GitHub enthält nur Anwendungscode, Tests und Build-Konfiguration; hochgeladene Dokumente werden nicht übertragen. Hosting-Zugriffe unterliegen den normalen GitHub-Pages-Protokollen. Inhalte bleiben nur im aktuellen Tab; Projekte bewusst als lokale Datei sichern. Projektdateien enthalten personenbezogene Inhalte unverschlüsselt und müssen entsprechend geschützt aufbewahrt werden.
+Im Textmodus werden Dokumente ausschliesslich im Browser verarbeitet. Im Word-Modus erfolgt die Konvertierung über die lokale Word-Anbindung auf dem eigenen Mac. Kein externes Backend, keine Analysewerkzeuge, keine externen Schrift- oder Bibliotheksaufrufe zur Laufzeit. GitHub enthält nur Anwendungscode, Tests und Build-Konfiguration; hochgeladene Dokumente werden nicht übertragen. Hosting-Zugriffe unterliegen den normalen GitHub-Pages-Protokollen. Inhalte bleiben nur im aktuellen Tab; Projekte bewusst als lokale Datei sichern. Projektdateien enthalten personenbezogene Inhalte unverschlüsselt und müssen entsprechend geschützt aufbewahrt werden.
 
 ## Entwicklung
 

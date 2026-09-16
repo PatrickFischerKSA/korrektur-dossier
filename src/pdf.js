@@ -4,7 +4,22 @@ import {PDFDocument,StandardFonts,rgb} from 'pdf-lib';
 import {annotatedContent} from './annotations.js';
 pdfMake.addVirtualFileSystem(fonts);
 const labels={errors:'Fehlerliste',text:'Korrigierter Text',comments:'Kommentare'};
-export async function createPdf(d){
+export async function createPdf(d,{nativeLayout=false}={}){
+ if(nativeLayout){
+  if(d.sources.some(s=>/\.(docx|odt)$/i.test(s.name)&&!s.original))throw Error('Für Original-Layout bitte die Word-Dateien über die lokale Word-Ausgabe erneut importieren. Das gespeicherte Projekt enthält nur extrahierten Text.');
+  const result=await PDFDocument.create();
+  const append=async bytes=>{const pdf=await PDFDocument.load(bytes);for(const page of await result.copyPages(pdf,pdf.getPageIndices()))result.addPage(page)};
+  if(d.cover){
+   const definition={pageSize:'A4',pageMargins:[48,52,48,52],defaultStyle:{font:'Roboto',color:'#203249'},content:[{text:'KORREKTURDOSSIER',fontSize:12,color:'#087f75',margin:[0,60,0,30]},{text:d.title||'Korrekturdossier',fontSize:30,bold:true,margin:[0,0,0,24]},{text:[d.person,d.group,d.date].filter(Boolean).join('\n'),fontSize:15,lineHeight:1.5}]};
+   await append(await new Promise((resolve,reject)=>{try{pdfMake.createPdf(definition).getBuffer(resolve)}catch(e){reject(e)}}));
+  }
+  for(const kind of Object.keys(labels))for(const s of d.sources.filter(s=>s.kind===kind)){
+   if(s.original)await append(Uint8Array.from(atob(s.original),c=>c.charCodeAt(0)));
+   else await append(await createPdf({...d,cover:false,sources:[s]},{nativeLayout:false}));
+  }
+  if(!result.getPageCount())throw Error('Keine Seiten vorhanden.');
+  return result.save();
+ }
  const content=[];
  if(d.cover)content.push({text:'KORREKTURDOSSIER',color:'#087f75',fontSize:12,characterSpacing:2,margin:[0,60,0,30]},{text:d.title||'Korrekturdossier',fontSize:32,bold:true,margin:[0,0,0,26]},{text:[d.person,d.group,d.date?d.date.split('-').reverse().join('.'):null].filter(Boolean).join('\n'),fontSize:15,lineHeight:1.5},{text:Object.entries(labels).filter(([k])=>d.sources.some(s=>s.kind===k)).map(([,v])=>v).join('  /  '),fontSize:10,color:'#617386',margin:[0,60,0,0]});
  let sections=0;const originals=[];
