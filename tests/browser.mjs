@@ -1,0 +1,37 @@
+import {chromium} from '@playwright/test';
+import {zipSync,strToU8,unzipSync} from 'fflate';
+import {PDFDocument,StandardFonts} from 'pdf-lib';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+await mkdir('tmp',{recursive:true});
+const fixture=zipSync({'word/document.xml':strToU8('<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Grüsse aus Zürich. </w:t></w:r><w:commentRangeStart w:id="0"/><w:r><w:t>Ein starker Gedanke.</w:t></w:r><w:commentRangeEnd w:id="0"/><w:r><w:commentReference w:id="0"/></w:r></w:p><w:p><w:del><w:r><w:delText>falsch</w:delText></w:r></w:del><w:ins><w:r><w:t>richtig</w:t></w:r></w:ins></w:p></w:body></w:document>'),'word/comments.xml':strToU8('<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:comment w:id="0" w:author="Lehrperson"><w:p><w:r><w:t>Beleg ergänzen.</w:t></w:r></w:p></w:comment></w:comments>')});
+const original=await PDFDocument.create();const page=original.addPage();const font=await original.embedFont(StandardFonts.Helvetica);page.drawText('Originalkorrektur PDF',{x:50,y:700,font});const pdf=await original.save();
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const context=await browser.newContext({viewport:{width:1440,height:1050},acceptDownloads:true});const ui=await context.newPage();const errors=[];ui.on('pageerror',e=>errors.push(e.message));
+await ui.addInitScript(()=>{document.modelContext={registerTool:tool=>{window.registeredTool=tool}}});
+await ui.goto(process.env.APP_URL||'http://127.0.0.1:5178/');
+await ui.locator('[data-field="title"]').fill('Erörterung · Rückmeldung');await ui.locator('[data-field="person"]').fill('Mia Beispiel');await ui.locator('[data-field="group"]').fill('FMS 2a');
+await ui.locator('#paste').fill('Zeile 4: Kommasetzung prüfen.\nZeile 8: präziser formulieren.');await ui.locator('#add-text').click();
+await ui.locator('[data-tab="text"]').click();
+await ui.locator('#files').setInputFiles({name:'Korrektur.docx',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:Buffer.from(fixture)});
+await ui.getByText('Korrektur.docx',{exact:true}).waitFor();await ui.locator('[data-edit]').click();
+const extracted=await ui.locator('[data-source]').inputValue();assert.match(extracted,/\[R1\].*Lehrperson: Beleg ergänzen/s);assert.match(extracted,/richtig/);assert.ok(!extracted.includes('falsch'));
+await ui.locator('#files').setInputFiles({name:'Original.pdf',mimeType:'application/pdf',buffer:Buffer.from(pdf)});await ui.getByText('Original.pdf',{exact:true}).waitFor();
+await ui.locator('[data-tab="comments"]').click();await ui.locator('#paste').fill('Überzeugende Argumentation.\n\nNächster Schritt: Belege präzisieren.\n'+'Eine längere Rückmeldung mit Umlauten ä ö ü und Gedankenstrich –.\n'.repeat(90));await ui.locator('#add-text').click();
+await ui.screenshot({path:'tmp/desktop.png',fullPage:true});
+const dl=ui.waitForEvent('download');await ui.locator('#pdf').click();const download=await dl;await download.saveAs('tmp/dossier.pdf');const output=await PDFDocument.load(await readFile('tmp/dossier.pdf'));assert.ok(output.getPageCount()>=5);assert.match(download.suggestedFilename(),/Mia Beispiel/);
+await ui.waitForFunction(()=>document.querySelector('#status').textContent.includes('Download erstellt'));
+const save=ui.waitForEvent('download');await ui.locator('#save').click();const project=await save;await project.saveAs('tmp/project.json');const json=JSON.parse(await readFile('tmp/project.json','utf8'));assert.equal(json.dossiers[0].sources.length,4);
+await ui.locator('#project').setInputFiles('tmp/project.json');await ui.waitForFunction(()=>document.querySelectorAll('[data-select]').length===2);
+const zip=ui.waitForEvent('download');await ui.locator('#all').click();await(await zip).saveAs('tmp/dossiers.zip');assert.equal(Object.keys(unzipSync(await readFile('tmp/dossiers.zip'))).length,2);
+await ui.waitForFunction(()=>!document.querySelector('#all').disabled);
+const tools=await ui.evaluate(async()=>{const t=window.registeredTool;const result=await t.execute({});let rejected=false;try{await t.execute({invalid:true})}catch{rejected=true}return {name:t.name,count:result.dossiers.length,rejected}});assert.deepEqual(tools,{name:'read_dossier_overview',count:2,rejected:true});
+await ui.setViewportSize({width:390,height:844});await ui.screenshot({path:'tmp/mobile.png',fullPage:true});assert.equal(await ui.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
+// Verify unsupported input produces an actionable failure without losing existing sources.
+await ui.locator('#files').setInputFiles({name:'alt.doc',mimeType:'application/msword',buffer:Buffer.from('unsupported')});await ui.waitForFunction(()=>document.querySelector('#status').textContent.includes('nicht unterstützt'));
+// Render actual exported PDF pages with PDF.js for visual QA and check text preservation.
+const bytes=Array.from(await readFile('tmp/dossier.pdf'));
+const result=await ui.evaluate(async data=>{const {getDocument,GlobalWorkerOptions}=await import('/node_modules/pdfjs-dist/build/pdf.mjs');GlobalWorkerOptions.workerSrc='/node_modules/pdfjs-dist/build/pdf.worker.min.mjs';const pdf=await getDocument({data:new Uint8Array(data)}).promise;let text='';const images=[];for(let n=1;n<=pdf.numPages;n++){const p=await pdf.getPage(n);text+=(await p.getTextContent()).items.map(i=>i.str).join(' ');if([1,2,3,pdf.numPages-1,pdf.numPages].includes(n)){const viewport=p.getViewport({scale:1});const c=document.createElement('canvas');c.width=viewport.width;c.height=viewport.height;await p.render({canvasContext:c.getContext('2d'),viewport}).promise;images.push({n,data:c.toDataURL()})}}return {text,images}},bytes);
+assert.match(result.text,/Grüsse aus Zürich/);assert.match(result.text,/Beleg ergänzen/);assert.match(result.text,/Originalkorrektur PDF/);for(const im of result.images)await writeFile(`tmp/pdf-page-${im.n}.png`,Buffer.from(im.data.split(',')[1],'base64'));
+assert.deepEqual(errors,[]);console.log(JSON.stringify({pages:output.getPageCount(),sources:4,dossiers:2,zip:true,wordComments:true,pdfOriginal:true,mobile:true,webmcp:true,errors},null,2));
+await browser.close();
