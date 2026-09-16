@@ -10,7 +10,7 @@ const browser=await chromium.launch({channel:'chrome',headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:1050},acceptDownloads:true});const ui=await context.newPage();const errors=[];ui.on('pageerror',e=>errors.push(e.message));
 await ui.addInitScript(()=>{document.modelContext={registerTool:tool=>{window.registeredTool=tool}}});
 await ui.goto(process.env.APP_URL||'http://127.0.0.1:5178/');
-await ui.locator('#native-layout').uncheck();
+await ui.getByText('Hinweise zur Word-Ausgabe',{exact:true}).click();await ui.locator('#native-layout').uncheck();
 await ui.locator('#auto-zip').uncheck();
 const upload=files=>ui.locator('#files').setInputFiles(files);
 const txt=(name,text='Beispiel mit Umlauten ä ö ü')=>({name,mimeType:'text/plain',buffer:Buffer.from(text)});
@@ -48,7 +48,7 @@ await upload([txt('unbekannt.txt')]);await ui.locator('[data-resolve]').waitFor(
 const save=ui.waitForEvent('download');await ui.locator('#save').click();await(await save).saveAs('tmp/project.json');const saved=JSON.parse(await readFile('tmp/project.json','utf8'));assert.equal(saved.dossiers.length,3);assert.equal(saved.pending.length,1);assert.ok(saved.dossiers.every(d=>d.matchKey));
 await ui.locator('[data-pending-field="kind"]').selectOption('comments');await ui.locator('[data-pending-field="suggestedName"]').fill('S4d Clara Test');await ui.locator('[data-resolve]').click();assert.equal(await ui.locator('[data-select]').count(),4);assert.equal(await ui.locator('[data-resolve]').count(),0);
 // Restore into a fresh tab and ensure an additional upload routes into the saved dossier.
-const restored=await context.newPage();await restored.goto(process.env.APP_URL||'http://127.0.0.1:5178/');await restored.locator('#native-layout').uncheck();await restored.locator('#auto-zip').uncheck();await restored.locator('#project').setInputFiles('tmp/project.json');await restored.waitForFunction(()=>document.querySelectorAll('[data-select]').length===4);assert.equal(await restored.locator('[data-resolve]').count(),1);
+const restored=await context.newPage();await restored.goto(process.env.APP_URL||'http://127.0.0.1:5178/');await restored.getByText('Hinweise zur Word-Ausgabe',{exact:true}).click();await restored.locator('#native-layout').uncheck();await restored.locator('#auto-zip').uncheck();await restored.locator('#project').setInputFiles('tmp/project.json');await restored.waitForFunction(()=>document.querySelectorAll('[data-select]').length===4);assert.equal(await restored.locator('[data-resolve]').count(),1);
 await restored.locator('#files').setInputFiles(txt('S4d_AnnaMeier_Kommentar_v2.txt'));await restored.waitForFunction(()=>document.querySelectorAll('[data-resolve]').length===2);assert.equal(await restored.locator('[data-select]').count(),4);
 await ui.setViewportSize({width:390,height:844});await ui.screenshot({path:'tmp/mobile.png',fullPage:true});assert.equal(await ui.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
 assert.deepEqual(errors,[]);console.log(JSON.stringify({dossiers:3,shuffledFiles:true,sameNameDifferentClass:true,wordComments:true,pdfAndZip:true,incompleteBlocked:true,duplicatesProtected:true,manualResolution:true,projectRoundtrip:true,mobile:true,errors},null,2));

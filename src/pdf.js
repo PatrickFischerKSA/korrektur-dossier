@@ -6,7 +6,6 @@ pdfMake.addVirtualFileSystem(fonts);
 const labels={errors:'Fehlerliste',text:'Korrigierter Text',comments:'Kommentare'};
 export async function createPdf(d,{nativeLayout=false}={}){
  if(nativeLayout){
-  if(d.sources.some(s=>/\.(docx|odt)$/i.test(s.name)&&!s.original))throw Error('Für Original-Layout bitte die Word-Dateien über die lokale Word-Ausgabe erneut importieren. Das gespeicherte Projekt enthält nur extrahierten Text.');
   const result=await PDFDocument.create();
   const append=async bytes=>{const pdf=await PDFDocument.load(bytes);for(const page of await result.copyPages(pdf,pdf.getPageIndices()))result.addPage(page)};
   if(d.cover){

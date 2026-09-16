@@ -19,11 +19,14 @@ export function readWordComments(bytes){
  }
  return notes.filter(n=>n.text.trim());
 }
-export async function addWordComments(pdf,notes){
+export async function addWordComments(pdf,notes,renderedPageTexts){
  if(!notes.length)return pdf;
+ const pageTexts=renderedPageTexts?.map(normalize)||[];
+ if(!renderedPageTexts){
  const {getDocument,GlobalWorkerOptions}=await import('pdfjs-dist');const {default:worker}=await import('pdfjs-dist/build/pdf.worker.min.mjs?url');GlobalWorkerOptions.workerSrc=worker;
- const task=getDocument({data:pdf.slice(),isEvalSupported:false}),pageTexts=[];
+ const task=getDocument({data:pdf.slice(),isEvalSupported:false});
  try{const doc=await task.promise;for(let i=1;i<=doc.numPages;i++)pageTexts.push(normalize((await(await doc.getPage(i)).getTextContent()).items.map(i=>i.str).join(' ')));}finally{await task.destroy()}
+ }
  const grouped=pageTexts.map(()=>[]),unmatched=[];
  for(const note of notes){const quote=normalize(note.quote);const candidates=quote?pageTexts.flatMap((text,i)=>text.includes(quote)?[i]:[]):[];if(candidates.length===1)grouped[candidates[0]].push(note);else unmatched.push(note);}
  const original=await PDFDocument.load(pdf),result=await PDFDocument.create(),sideWidth=250;
@@ -31,7 +34,7 @@ export async function addWordComments(pdf,notes){
  for(let i=0;i<original.getPageCount();i++){
   const [page]=await result.copyPages(original,[i]);result.addPage(page);
   if(!grouped[i].length)continue;
-  const {width,height}=page.getSize(),side=await sidebar(grouped[i],height,`Randkommentare · Originalseite ${i+1}`);
+  const {width,height}=page.getSize(),side=await sidebar(grouped[i],height,`Randkommentare · Textseite ${i+1}`);
   const embedded=await result.embedPages(side.getPages());
   page.setMediaBox(0,0,width+sideWidth,height);page.setCropBox(0,0,width+sideWidth,height);page.drawPage(embedded[0],{x:width,y:0});
   for(const extra of embedded.slice(1)){const continuation=result.addPage([width+sideWidth,height]);continuation.drawPage(extra,{x:width,y:0});}

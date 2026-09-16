@@ -2,22 +2,17 @@
 
 Deutschsprachige Web-App zum Zusammenstellen von Fehlerlisten, korrigierten Texten mit Randbemerkungen und Kommentaren. Mehrere Dossiers lassen sich einzeln als PDF oder gemeinsam als ZIP herunterladen.
 
-## Original-Word-Layout (Mac)
+## Direkt im Browser – ohne Installation
 
-Die Standardausgabe konvertiert DOCX mit **Microsoft Word auf dem eigenen Mac**. GitHub Pages kann selbst kein Word ausführen. Dafür enthält die Website einen Download **Word-Ausgabe für Mac herunterladen** (`Dossier-Word-Mac.zip`).
+Dateien auswählen oder hineinziehen. Die App erkennt zusammengehörige Dokumente, erstellt alle vollständigen Dossiers und lädt sie automatisch als ZIP herunter. Kein Word, Node.js oder lokaler Starter erforderlich. Bis zu 100 Dateien pro Auswahl werden nacheinander verarbeitet.
 
-1. Microsoft Word und Node.js 24 müssen installiert sein.
-2. ZIP entpacken, darin `local/Dossier-starten.command` doppelklicken.
-3. Die Anwendung öffnet sich unter `http://127.0.0.1:5186/`. Das Terminalfenster offen lassen.
-4. Falls macOS nachfragt, Terminal die Automatisierung von Microsoft Word erlauben. Word vollständig starten und eventuelle Dialoge schliessen.
-5. Dateien in der lokalen Anwendung auswählen. Word wird nacheinander mit temporären Kopien angesprochen. Währenddessen bitte nicht in Word arbeiten.
-6. Originale PDF-Inhalte werden in Dokumentreihenfolge verbunden; Word-Kommentare erhalten einen zusätzlichen Rand; es werden keine zusätzlichen Seitenzahlen auf die Originalseiten gemalt. Deckblatt ist optional. Anschliessend werden die Dossiers als ZIP heruntergeladen.
+DOCX wird mit docx-preview direkt im Browser formatiert dargestellt und seitenweise als hochauflösendes Bild in PDF übernommen. Tabellen, Farben, Bilder und Formatierungen werden berücksichtigt. Schriftarten und Seitenumbrüche können von Microsoft Word abweichen; eine pixelgenaue Word-Konvertierung wird nicht versprochen. Der Dokumenttext ist im erzeugten PDF nicht durchsuchbar. Vorhandene PDFs bleiben als Originalseiten erhalten.
 
-Die Anbindung lauscht nur auf Loopback. Konvertierungsanfragen benötigen einen zufälligen Sitzungsschlüssel und den lokalen Origin. Keine Dokumente werden an GitHub oder einen externen Konvertierungsdienst geschickt. Temporäre Kopien werden nach dem Export entfernt. Makrodateien werden abgelehnt. Word exportiert das originale Textlayout. Da sein automatischer PDF-Export Kommentarblasen auslassen kann, liest die App alle Kommentare direkt aus DOCX und setzt sie mit vollständiger zitierter Textstelle in einen zusätzlichen 250-Punkt-Rand neben der passenden Originalseite. Die Seiten werden breiter, der Dokumenttext wird weder skaliert noch neu umbrochen. Lange Kommentare erhalten Fortsetzungsseiten. Nicht eindeutig einer Seite zuordenbare Kommentare erscheinen vollständig in einem gekennzeichneten Anhang. Dies ist keine exakte Nachbildung der Word-Kommentarblasen. Bei einem Word-Fehler gibt es **keinen stillen Rückfall** auf die Textausgabe. Nach einem Word-Zeitlimit ist ein Neustart des lokalen Starters erforderlich.
+Alle DOCX-Kommentare werden zusätzlich direkt ausgelesen und mit zitierten Textstellen in einem lesbaren Rand neben der zugeordneten Seite ausgegeben. Uneindeutige Verweise stehen vollständig in einem gekennzeichneten Anhang. Lange Kommentare erhalten Fortsetzungsseiten. Die Randspalte vergrössert die Seitenbreite.
 
-Der ausdrücklich auswählbare **Textmodus** bleibt verfügbar. Er erhält das Original-Layout nicht. Vorhandene Projekte enthalten häufig nur den extrahierten Text; für einen Originalexport müssen die DOCX-Dateien neu importiert werden. ODT bleibt im Textmodus verfügbar; die Word-Anbindung unterstützt DOCX. Bereits fertige PDFs können direkt importiert werden.
+Unter «Hinweise zur Word-Ausgabe» lässt sich optional auf die bisherige Textausgabe umschalten. Bereits gesicherte Projekte mit nur extrahiertem Text funktionieren weiterhin; zur Übernahme der Formatierung die ursprünglichen DOCX-Dateien neu importieren.
 
-Entwicklung: `npm run build` baut Website und Mac-Downloadpaket; `npm run word` startet die lokale Ausgabe aus dem Checkout. Der folgende Formatabschnitt beschreibt, soweit nicht anders angegeben, den Textmodus.
+Die frühere lokale Word-Anbindung liegt weiterhin im Repository, ist aber kein Bestandteil des normalen Ablaufs und wird nicht automatisch aufgerufen. Dokumente werden nicht an einen Server übertragen.
 
 ## Verwendung
 
@@ -40,7 +35,7 @@ Auch die Kombination aus der Korrekturwerkstatt wird automatisch erkannt:
 
 ## Formate und Grenzen
 
-- DOCX: Text, Tabelleninhalte, vollständige Kommentare in einer eigenen Randspalte neben dem zugehörigen Absatz, hervorgehobene Textstellen und einfache Nummernverweise, Fuss- und Endnoten. Einfügungen der Änderungsverfolgung werden übernommen, Löschungen ausgelassen. Bilder und ursprüngliches Seitenlayout werden nicht übernommen.
+- DOCX im optionalen Textmodus: Text, Tabelleninhalte, vollständige Kommentare in einer eigenen Randspalte neben dem zugehörigen Absatz, hervorgehobene Textstellen und einfache Nummernverweise, Fuss- und Endnoten. Einfügungen der Änderungsverfolgung werden übernommen, Löschungen ausgelassen. Bilder und ursprüngliches Seitenlayout werden nicht übernommen.
 - ODT: Text, Tabelleninhalte und eingebettete Anmerkungen; kein Erhalt des ursprünglichen Layouts oder der Bilder.
 - PDF: Originalseiten im Anhang und auslesbare Anmerkungen als Text. Auch gescannte PDFs können als Original angehängt werden. Keine OCR, keine passwortgeschützten PDFs. Interaktive Formulare und Signaturen werden nicht als interaktive beziehungsweise gültig signierte Dokumente erhalten. PDF-Originale vor dem Import bei Bedarf im PDF-Programm drucken/flatten.
 - TXT, Markdown, CSV, TSV, HTML und JSON: vereinheitlichte Textdarstellung. Markdown wird als lesbarer Quelltext übernommen, CSV/TSV nicht fachlich interpretiert. HTML-Skripte und aktive Inhalte werden nicht ausgeführt.
@@ -48,13 +43,13 @@ Auch die Kombination aus der Korrekturwerkstatt wird automatisch erkannt:
 - Keine alten DOC/RTF-Dateien oder Bilddateien. Vorher nach DOCX oder PDF konvertieren.
 - 25 MB pro Datei, 80 MB entpackte Office-Inhalte, 150 MB pro Projektimport. Sehr grosse Sammlungen hängen vom Gerätespeicher ab.
 - PDF-Ausgabe mit eingebetteter Roboto-Schrift: europäische Sprachen, Griechisch und Kyrillisch; keine vollständige Abdeckung aller Schriftsysteme oder Emojis.
-- Seitenzahlen werden auch auf angehängten PDF-Seiten unten rechts ergänzt. Alle Ergebnisse vor der Weitergabe prüfen.
+- Nur im optionalen Textmodus werden Seitenzahlen auf angehängten PDF-Seiten unten rechts ergänzt. Alle Ergebnisse vor der Weitergabe prüfen.
 
 Die Randkommentar-Darstellung gilt auch für bereits gesicherte Projekte mit dem bisherigen Importformat. Erneut exportieren genügt. Bei sehr langen Absätzen oder Kommentaren wird die Zweispaltendarstellung auf der nächsten Seite fortgesetzt. Kommentare ohne auffindbaren Verweis bleiben als solche gekennzeichnet erhalten.
 
 ## Datenschutz
 
-Im Textmodus werden Dokumente ausschliesslich im Browser verarbeitet. Im Word-Modus erfolgt die Konvertierung über die lokale Word-Anbindung auf dem eigenen Mac. Kein externes Backend, keine Analysewerkzeuge, keine externen Schrift- oder Bibliotheksaufrufe zur Laufzeit. GitHub enthält nur Anwendungscode, Tests und Build-Konfiguration; hochgeladene Dokumente werden nicht übertragen. Hosting-Zugriffe unterliegen den normalen GitHub-Pages-Protokollen. Inhalte bleiben nur im aktuellen Tab; Projekte bewusst als lokale Datei sichern. Projektdateien enthalten personenbezogene Inhalte unverschlüsselt und müssen entsprechend geschützt aufbewahrt werden.
+Dokumente werden ausschliesslich im Browser verarbeitet. Kein externes Backend, keine Analysewerkzeuge, keine externen Schrift- oder Bibliotheksaufrufe zur Laufzeit. GitHub enthält nur Anwendungscode, Tests und Build-Konfiguration; hochgeladene Dokumente werden nicht übertragen. Hosting-Zugriffe unterliegen den normalen GitHub-Pages-Protokollen. Inhalte bleiben nur im aktuellen Tab; Projekte bewusst als lokale Datei sichern. Projektdateien enthalten personenbezogene Inhalte unverschlüsselt und müssen entsprechend geschützt aufbewahrt werden.
 
 ## Entwicklung
 
