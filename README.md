@@ -4,7 +4,7 @@ Deutschsprachige Web-App zum Zusammenstellen von Fehlerlisten, korrigierten Text
 
 ## Verwendung
 
-1. Alle Dateien gemeinsam auswählen oder ablegen. Die aktuelle Registerkarte hat keinen Einfluss auf die automatische Zuordnung.
+1. Bis zu **100 Dateien pro Auswahl** gemeinsam auswählen oder ablegen. Ein Paket wird speicherschonend Datei für Datei verarbeitet; eine Fortschrittsanzeige zeigt den Stand. Fehler einzelner Dateien stoppen den restlichen Import nicht und bleiben im Importbericht sichtbar. Mehr als 100 Dateien werden ohne Teilimport abgewiesen; weitere Pakete können anschliessend ergänzt werden. Die aktuelle Registerkarte hat keinen Einfluss auf die automatische Zuordnung.
 2. Das Namensschema ist `Klassenbezeichnung_VornameNachname_Dokumentart`, beispielsweise:
    - `S4d_AnnaMeier_Fehlerliste.docx`
    - `S4d_AnnaMeier_Text_mit_Randbemerkungen.pdf`

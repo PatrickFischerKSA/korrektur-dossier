@@ -8,6 +8,8 @@ const labels=roles;
 const uid=()=>crypto.randomUUID();
 const fresh=()=>({id:uid(),title:'Neues Dossier',person:'',group:'',date:new Date().toLocaleDateString('sv-SE'),sources:[],cover:true});
 let dossiers=[fresh()],active=dossiers[0].id,tab='errors',busy=false,pending=[];
+const MAX_BATCH_FILES=100;
+let importState=null;
 const drafts=new Map();
 const current=()=>dossiers.find(d=>d.id===active);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -23,6 +25,7 @@ ${renderBatch()}<div class="work-grid"><div><section class="panel"><h2>Angaben z
 let noticeTimer;
 function notify(message){clearTimeout(noticeTimer);document.querySelector('#status').textContent=message;if(!busy)noticeTimer=setTimeout(()=>{const el=document.querySelector('#status');if(el)el.textContent=''},14000);}
 function bind(){
+ if(busy)document.querySelectorAll('button,input,textarea,select').forEach(el=>el.disabled=true);
  document.querySelector('#paste').value=drafts.get(active+tab)||'';
  document.querySelector('#paste').oninput=e=>drafts.set(active+tab,e.target.value);
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render()});
@@ -56,7 +59,7 @@ function destination(name,key,group=''){
  const empty=dossiers.find(d=>!d.sources.length&&!d.person&&d.title==='Neues Dossier'&&!['errors','text','comments'].some(k=>drafts.get(d.id+k)));
  const d=empty||fresh();d.person=name;d.group=group;d.title='Korrekturdossier';d.matchKey=key;if(!empty)dossiers.push(d);return d;
 }
-function renderBatch(){return `<section class="panel batch-panel"><div class="drop" id="drop"><div class="drop-icon">↥</div><strong>Alle Dateien gemeinsam hinzufügen</strong><p>Die Dateinamen bestimmen das Dossier und die Dokumentart – unabhängig vom geöffneten Bereich.</p><button class="primary" id="upload" ${busy?'disabled':''}>${busy?'Dateien werden zugeordnet …':'Dateien auswählen'}</button></div><p class="formats">Zum Beispiel: S4d_AnnaMeier_Fehlerliste.pdf · S4d_AnnaMeier_mit_Randbemerkungen.docx · S4d_AnnaMeier_mit_Randbemerkungen-korrektur.docx<br>DOCX · PDF · ODT · TXT · Markdown · CSV / TSV · HTML · JSON</p><div class="batch-summary">${dossiers.filter(d=>completeness(d).complete).length} vollständige Dossiers · ${dossiers.filter(d=>d.sources.length&&!completeness(d).complete).length} unvollständig · ${pending.length} Dateien zu klären</div>${pending.length?`<div class="pending"><h2>Zuordnung klären</h2><p>Diese Dateien wurden eingelesen, aber noch keinem Dossier hinzugefügt. Bestehende Quellen werden nie überschrieben.</p>${pending.map(s=>`<article class="source"><strong>${esc(s.name)}</strong><p class="notice">${esc(s.reason)}</p><div class="fields"><label>Dossier<select id="pending-target-${s.id}" data-pending-field="target" data-pending-id="${s.id}"><option value="">Neues Dossier / Name unten</option>${dossiers.map(d=>`<option value="${d.id}" ${s.target===d.id?'selected':''}>${esc(dossierLabel(d))}</option>`).join('')}</select></label><label>Dokumentart<select id="pending-kind-${s.id}" data-pending-field="kind" data-pending-id="${s.id}"><option value="">Bitte wählen</option>${Object.entries(labels).map(([k,v])=>`<option value="${k}" ${s.kind===k?'selected':''}>${v}</option>`).join('')}</select></label><label class="full">Name für neues Dossier<input id="pending-name-${s.id}" data-pending-field="suggestedName" data-pending-id="${s.id}" value="${esc(s.suggestedName||'')}" placeholder="Gemeinsamer Name aus den Dateinamen"></label></div><div class="pending-actions"><button data-resolve="${s.id}" ${busy?'disabled':''}>Zuordnen</button><button data-discard="${s.id}" ${busy?'disabled':''}>Datei verwerfen</button></div></article>`).join('')}</div>`:''}</section>`}
+function renderBatch(){return `<section class="panel batch-panel"><div class="drop" id="drop"><div class="drop-icon">↥</div><strong>Bis zu 100 Dateien gemeinsam hinzufügen</strong><p>Die Dateinamen bestimmen das Dossier und die Dokumentart – unabhängig vom geöffneten Bereich.</p><button class="primary" id="upload" ${busy?'disabled':''}>${busy?'Dateien werden zugeordnet …':'Dateien auswählen'}</button></div>${renderImportProgress()}<p class="formats">Maximal 100 Dateien pro Auswahl, bis zu 25 MB pro Datei. Die Dateien werden nacheinander verarbeitet.<br>Zum Beispiel: S4d_AnnaMeier_Fehlerliste.pdf · S4d_AnnaMeier_mit_Randbemerkungen.docx · S4d_AnnaMeier_mit_Randbemerkungen-korrektur.docx<br>DOCX · PDF · ODT · TXT · Markdown · CSV / TSV · HTML · JSON</p><div class="batch-summary">${dossiers.filter(d=>completeness(d).complete).length} vollständige Dossiers · ${dossiers.filter(d=>d.sources.length&&!completeness(d).complete).length} unvollständig · ${pending.length} Dateien zu klären</div>${pending.length?`<div class="pending"><h2>Zuordnung klären</h2><p>Diese Dateien wurden eingelesen, aber noch keinem Dossier hinzugefügt. Bestehende Quellen werden nie überschrieben.</p>${pending.map(s=>`<article class="source"><strong>${esc(s.name)}</strong><p class="notice">${esc(s.reason)}</p><div class="fields"><label>Dossier<select id="pending-target-${s.id}" data-pending-field="target" data-pending-id="${s.id}"><option value="">Neues Dossier / Name unten</option>${dossiers.map(d=>`<option value="${d.id}" ${s.target===d.id?'selected':''}>${esc(dossierLabel(d))}</option>`).join('')}</select></label><label>Dokumentart<select id="pending-kind-${s.id}" data-pending-field="kind" data-pending-id="${s.id}"><option value="">Bitte wählen</option>${Object.entries(labels).map(([k,v])=>`<option value="${k}" ${s.kind===k?'selected':''}>${v}</option>`).join('')}</select></label><label class="full">Name für neues Dossier<input id="pending-name-${s.id}" data-pending-field="suggestedName" data-pending-id="${s.id}" value="${esc(s.suggestedName||'')}" placeholder="Gemeinsamer Name aus den Dateinamen"></label></div><div class="pending-actions"><button data-resolve="${s.id}" ${busy?'disabled':''}>Zuordnen</button><button data-discard="${s.id}" ${busy?'disabled':''}>Datei verwerfen</button></div></article>`).join('')}</div>`:''}</section>`}
 function resolvePending(id){
  const s=pending.find(x=>x.id===id),kind=document.getElementById(`pending-kind-${id}`).value,target=document.getElementById(`pending-target-${id}`).value,name=document.getElementById(`pending-name-${id}`).value.trim();
  if(!Object.hasOwn(labels,kind))return notify('Bitte eine Dokumentart wählen.');
@@ -65,14 +68,34 @@ function resolvePending(id){
  if(d.sources.some(x=>x.kind===kind))return notify('Diese Dokumentart ist bereits belegt. Entferne zuerst die nicht benötigte Quelle im Dossier.');
  const {reason,suggestedName,key,target:oldTarget,...source}=s;d.sources.push({...source,kind});pending=pending.filter(x=>x.id!==id);active=d.id;tab=kind;render();notify('Datei zugeordnet.');
 }
-async function addFiles(list){if(busy)return;const files=Array.from(list);if(!files.length)return;busy=true;render();let success=0,firstId;const failed=[];
- for(const f of files){notify(`Lese ${f.name} …`);try{const parsed=await importFile(f);if(!parsed.text?.trim()&&!parsed.original)throw Error('Kein lesbarer Text gefunden.');const match=identifyFilename(f.name),source={id:uid(),name:f.name,kind:match.kind,...parsed};let reason=match.reason;const candidates=match.key?matchingDossiers(dossiers,match.key):[];
-  if(!reason&&candidates.length>1)reason='Mehrere Dossiers passen zu diesem Namen. Bitte eines auswählen.';
-  if(!reason&&candidates[0]?.sources.some(s=>s.kind===match.kind))reason='Diese Dokumentart ist bereits vorhanden. Bitte die richtige Datei auswählen.';
-  if(reason)pending.push({...source,reason,suggestedName:[match.group,match.name].filter(Boolean).join(' '),key:match.key,target:candidates.length===1?candidates[0].id:''});
-  else{const d=candidates[0]||destination(match.name,match.key,match.group);d.sources.push(source);firstId??=d.id;}success++;
- }catch(e){failed.push(`${f.name}: ${e.message}`)}}
- if(firstId)active=firstId;busy=false;render();notify(`${success} Dateien eingelesen.${pending.length?' Bitte offene Zuordnungen klären.':''}${failed.length?' '+failed.join(' | '):''}`);
+function renderImportProgress(){if(!importState)return '<div id="import-progress"></div>';const s=importState;return `<div id="import-progress" class="import-progress"><label for="import-meter">${s.finished?'Import abgeschlossen':`Verarbeite Datei ${Math.min(s.done+1,s.total)} von ${s.total}`}</label><progress id="import-meter" max="${s.total}" value="${s.done}"></progress><p aria-live="polite">${s.done} von ${s.total} Dateien verarbeitet · ${s.success} eingelesen · ${s.failed.length} fehlgeschlagen</p>${!s.finished&&s.current?`<p class="import-current">${esc(s.current)}</p>`:''}${s.failed.length?`<details ${s.finished?'open':''}><summary>Nicht eingelesene Dateien (${s.failed.length})</summary><ul>${s.failed.map(f=>`<li><strong>${esc(f.name)}</strong>: ${esc(f.message)}</li>`).join('')}</ul></details>`:''}</div>`}
+function updateImportProgress(){const target=document.querySelector('#import-progress');if(target)target.outerHTML=renderImportProgress()}
+async function addFiles(list){
+ if(busy){notify('Der aktuelle Vorgang läuft noch. Bitte danach weitere Dateien hinzufügen.');return;}
+ const files=Array.from(list);if(!files.length)return;
+ if(files.length>MAX_BATCH_FILES){document.querySelector('#files').value='';notify(`Du hast ${files.length} Dateien ausgewählt. Maximal ${MAX_BATCH_FILES} Dateien pro Auswahl; es wurde keine Datei aus dieser Auswahl eingelesen. Bitte in mehrere Pakete aufteilen.`);return;}
+ busy=true;importState={total:files.length,done:0,success:0,failed:[],current:'',finished:false};render();let firstId;
+ try{
+  for(const f of files){
+   importState.current=f.name;updateImportProgress();
+   // Yield between documents so progress paints and input is not starved by a large batch.
+   await new Promise(resolve=>setTimeout(resolve,0));
+   try{
+    const parsed=await importFile(f);if(!parsed.text?.trim()&&!parsed.original)throw Error('Kein lesbarer Text gefunden.');
+    const match=identifyFilename(f.name),source={id:uid(),name:f.name,kind:match.kind,...parsed};let reason=match.reason;
+    const candidates=match.key?matchingDossiers(dossiers,match.key):[];
+    if(!reason&&candidates.length>1)reason='Mehrere Dossiers passen zu diesem Namen. Bitte eines auswählen.';
+    if(!reason&&candidates[0]?.sources.some(s=>s.kind===match.kind))reason='Diese Dokumentart ist bereits vorhanden. Bitte die richtige Datei auswählen.';
+    if(reason)pending.push({...source,reason,suggestedName:[match.group,match.name].filter(Boolean).join(' '),key:match.key,target:candidates.length===1?candidates[0].id:''});
+    else{const d=candidates[0]||destination(match.name,match.key,match.group);d.sources.push(source);firstId??=d.id;}
+    importState.success++;
+   }catch(e){importState.failed.push({name:f.name,message:e.message||'Die Datei konnte nicht gelesen werden.'});}
+   importState.done++;updateImportProgress();
+  }
+ }finally{
+  if(firstId)active=firstId;busy=false;importState.finished=true;render();
+  notify(`${importState.success} von ${importState.total} Dateien eingelesen.${pending.length?' Bitte offene Zuordnungen klären.':''}${importState.failed.length?' Nicht eingelesene Dateien stehen im Importbericht.':''}`);
+ }
 }
 function download(bytes,name,type){const url=URL.createObjectURL(new Blob([bytes],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000)}
 async function exportPdfs(all){if(busy)return;if(all?!canExportAll():!completeness(current()).complete)return notify('Für den Export braucht jedes Dossier genau eine Datei je Dokumentart. Bitte fehlende oder doppelte Dateien und offene Zuordnungen klären.');const selection=structuredClone(all?dossiers.filter(d=>d.sources.length):[current()]);busy=true;render();notify('PDF wird erstellt …');try{const {createPdf}=await import('./pdf.js');if(all){const files={};for(let i=0;i<selection.length;i++){const d=selection[i];notify(`Dossier ${i+1} von ${selection.length} wird erstellt …`);files[`${String(i+1).padStart(2,'0')}-${safeName([d.group,d.person||d.title].filter(Boolean).join('-'))}.pdf`]=await createPdf(d)}download(zipSync(files,{level:0}),'Korrektur-Dossiers.zip','application/zip')}else{const d=selection[0];download(await createPdf(d),`${safeName([d.group,d.person,d.title].filter(Boolean).join(' - '))}.pdf`,'application/pdf')}busy=false;render();notify('Download erstellt. Bitte das PDF vor der Weitergabe prüfen.')}catch(e){busy=false;render();notify(`Export nicht möglich: ${e.message}`)}}
