@@ -23,7 +23,7 @@ Auch die Kombination aus der Korrekturwerkstatt wird automatisch erkannt:
 
 ## Formate und Grenzen
 
-- DOCX: Text, Tabelleninhalte, Kommentare mit R-Verweisen, Fuss- und Endnoten. Einfügungen der Änderungsverfolgung werden übernommen, Löschungen ausgelassen. Bilder und ursprüngliches Seitenlayout werden nicht übernommen.
+- DOCX: Text, Tabelleninhalte, vollständige Kommentare in einer eigenen Randspalte neben dem zugehörigen Absatz, hervorgehobene Textstellen und einfache Nummernverweise, Fuss- und Endnoten. Einfügungen der Änderungsverfolgung werden übernommen, Löschungen ausgelassen. Bilder und ursprüngliches Seitenlayout werden nicht übernommen.
 - ODT: Text, Tabelleninhalte und eingebettete Anmerkungen; kein Erhalt des ursprünglichen Layouts oder der Bilder.
 - PDF: Originalseiten im Anhang und auslesbare Anmerkungen als Text. Auch gescannte PDFs können als Original angehängt werden. Keine OCR, keine passwortgeschützten PDFs. Interaktive Formulare und Signaturen werden nicht als interaktive beziehungsweise gültig signierte Dokumente erhalten. PDF-Originale vor dem Import bei Bedarf im PDF-Programm drucken/flatten.
 - TXT, Markdown, CSV, TSV, HTML und JSON: vereinheitlichte Textdarstellung. Markdown wird als lesbarer Quelltext übernommen, CSV/TSV nicht fachlich interpretiert. HTML-Skripte und aktive Inhalte werden nicht ausgeführt.
@@ -32,6 +32,8 @@ Auch die Kombination aus der Korrekturwerkstatt wird automatisch erkannt:
 - 25 MB pro Datei, 80 MB entpackte Office-Inhalte, 150 MB pro Projektimport. Sehr grosse Sammlungen hängen vom Gerätespeicher ab.
 - PDF-Ausgabe mit eingebetteter Roboto-Schrift: europäische Sprachen, Griechisch und Kyrillisch; keine vollständige Abdeckung aller Schriftsysteme oder Emojis.
 - Seitenzahlen werden auch auf angehängten PDF-Seiten unten rechts ergänzt. Alle Ergebnisse vor der Weitergabe prüfen.
+
+Die Randkommentar-Darstellung gilt auch für bereits gesicherte Projekte mit dem bisherigen Importformat. Erneut exportieren genügt. Bei sehr langen Absätzen oder Kommentaren wird die Zweispaltendarstellung auf der nächsten Seite fortgesetzt. Kommentare ohne auffindbaren Verweis bleiben als solche gekennzeichnet erhalten.
 
 ## Datenschutz
 

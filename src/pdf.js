@@ -1,6 +1,7 @@
 import pdfMake from 'pdfmake/build/pdfmake';
 import fonts from 'pdfmake/build/vfs_fonts';
 import {PDFDocument,StandardFonts,rgb} from 'pdf-lib';
+import {annotatedContent} from './annotations.js';
 pdfMake.addVirtualFileSystem(fonts);
 const labels={errors:'Fehlerliste',text:'Korrigierter Text',comments:'Kommentare'};
 export async function createPdf(d){
@@ -12,7 +13,7 @@ export async function createPdf(d){
   content.push({text:label,fontSize:23,bold:true,color:'#1b3650',margin:[0,0,0,22],...(d.cover||sections?{pageBreak:'before'}:{})});sections++;
   for(const s of sources){content.push({text:s.name,fontSize:12,bold:true,margin:[0,12,0,8]});
    if(s.original){originals.push(s);content.push({text:`Original-PDF im Anhang ${originals.length}.`,fontSize:10,color:'#617386',margin:[0,0,0,8]})}
-   if(s.text.trim())content.push({text:s.text.replace(/\t/g,'    '),fontSize:10.5,lineHeight:1.3,margin:[0,0,0,14]});
+   if(s.text.trim())content.push(annotatedContent(s.text)||{text:s.text.replace(/\t/g,'    '),fontSize:10.5,lineHeight:1.3,margin:[0,0,0,14]});
   }
  }
  if(!sections)throw Error('Bitte zuerst Quellen hinzufügen.');
