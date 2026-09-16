@@ -9,6 +9,11 @@ Deutschsprachige Web-App zum Zusammenstellen von Fehlerlisten, korrigierten Text
    - `S4d_AnnaMeier_Fehlerliste.docx`
    - `S4d_AnnaMeier_Text_mit_Randbemerkungen.pdf`
    - `S4d_AnnaMeier_Kommentar.txt`
+Auch die Kombination aus der Korrekturwerkstatt wird automatisch erkannt:
+   - `S4d_AnnaMeier_mit_Randbemerkungen.docx` → Text mit Randbemerkungen
+   - `S4d_AnnaMeier_mit_Randbemerkungen-korrektur.docx` → Kommentar / Gutachten
+   - `S4d_AnnaMeier_Fehlerliste.pdf` → Fehlerliste
+
 3. Klasse und Name bilden den gemeinsamen Schlüssel. Gleiche Namen in unterschiedlichen Klassen bleiben getrennt. Auch zeitversetzte Uploads ergänzen das passende Dossier. Die Erkennung toleriert übliche Trennzeichen, CamelCase, Gross-/Kleinschreibung, Umlaute/ae/oe/ue und explizite Versionszusätze wie `_v2` oder `_final`. Sie verwendet keinen unscharfen Namensabgleich.
 4. Erkannte Arten: Fehlerliste/Fehlerübersicht/Fehlerprotokoll/Fehleranalyse; Text mit Randbemerkungen/Randkommentaren, korrigierter Text, Text/Aufsatz; Kommentar/Gesamtkommentar/Schlusskommentar/Feedback/Rückmeldung/Beurteilung.
 5. Unter **Zuordnung klären** unbekannte oder mehrdeutige Namen manuell einem Dossier und einer Dokumentart zuweisen. Doppelte Arten überschreiben niemals vorhandene Dateien. Bei zwei Versionen die nicht benötigte Quelle entfernen und dann die gewünschte zuordnen.

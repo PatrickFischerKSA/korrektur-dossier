@@ -1,7 +1,10 @@
 export const roles={errors:'Fehlerliste',text:'Text mit Randbemerkungen',comments:'Kommentar'};
 export function nameKey(value){return String(value).toLocaleLowerCase('de').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').normalize('NFKD').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
 const rules=[
- ['text',/\b(?:(?:korrigiert(?:er|e|es|en)?[\s_-]+)?text[\s_-]+(?:mit[\s_-]+)?(?:randbemerkungen|randkommentaren?|randkommentierung|kommentaren?)|korrigiert(?:er|e|es|en)?[\s_-]+text|text[\s_-]+korrigiert|randbemerkungen|randkommentare|randkommentierung)\b/gi],
+ // The correction workshop exports its assessment using the original text's stem.
+ // Consume the entire compound before considering the generic text markers.
+ ['comments',/\b(?:mit[\s_-]+)?randbemerkungen[\s_-]+korrektur\b/gi],
+ ['text',/\b(?:(?:korrigiert(?:er|e|es|en)?[\s_-]+)?text[\s_-]+(?:mit[\s_-]+)?(?:randbemerkungen|randkommentaren?|randkommentierung|kommentaren?)|korrigiert(?:er|e|es|en)?[\s_-]+text|text[\s_-]+korrigiert|(?:mit[\s_-]+)?(?:randbemerkungen|randkommentare|randkommentierung))\b/gi],
  ['errors',/\b(?:fehlerliste|fehlerlisten|fehleruebersicht|fehlerprotokoll|fehleranalyse|fehler[\s_-]+liste)\b/gi],
  ['comments',/\b(?:gesamtkommentar|schlusskommentar|kommentar|kommentare|feedback|rueckmeldung|beurteilung)\b/gi],
  ['text',/\b(?:text|aufsatz|korrigiert(?:er|e|es|en)?)\b/gi],

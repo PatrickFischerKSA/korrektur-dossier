@@ -2,6 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {identifyFilename,matchingDossiers,completeness} from '../src/grouping.js';
 import {validatePending,validateProject} from '../src/model.js';
+test('correction workshop triplet groups text, assessment and error list together',()=>{
+ const results=['S4d_AnnaMeier_mit_Randbemerkungen.docx','S4d_AnnaMeier_mit_Randbemerkungen-korrektur.docx','S4d_AnnaMeier_Fehlerliste.pdf'].map(identifyFilename);
+ assert.deepEqual(results.map(x=>x.kind),['text','comments','errors']);
+ assert.ok(results.every(x=>x.key==='s4d anna meier'&&x.name==='Anna Meier'&&x.group==='S4d'&&!x.reason));
+ assert.equal(identifyFilename('S4d_AnnaMeier_mit_Randbemerkungen-korrektur_v2.docx').kind,'comments');
+ assert.equal(identifyFilename('S4d_AnnaMeier_mit_Randbemerkungen-korrektur_v2.docx').key,'s4d anna meier');
+});
 test('class and CamelCase name join all three document types',()=>{
  const results=['S4d_AnnaMeier_Fehlerliste.docx','S4d_AnnaMeier_Text_mit_Randbemerkungen.pdf','S4d_AnnaMeier_Kommentar.txt'].map(identifyFilename);
  assert.deepEqual(results.map(x=>x.kind),['errors','text','comments']);assert.equal(new Set(results.map(x=>x.key)).size,1);assert.equal(results[0].group,'S4d');assert.equal(results[0].name,'Anna Meier');assert.ok(results.every(x=>!x.reason));
