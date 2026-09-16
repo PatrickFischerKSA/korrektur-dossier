@@ -38,13 +38,13 @@ export async function importFile(file){
  if(ext==='pdf'){
   const {getDocument,GlobalWorkerOptions}=await import('pdfjs-dist');
   const {default:worker}=await import('pdfjs-dist/build/pdf.worker.min.mjs?url');GlobalWorkerOptions.workerSrc=worker;
-  let pdf;
-  try{pdf=await getDocument({data:bytes.slice(),isEvalSupported:false,useSystemFonts:true}).promise}catch{throw Error('PDF nicht lesbar oder passwortgeschützt. Bitte eine ungeschützte PDF-Datei verwenden.')}
+  let pdf;const loadingTask=getDocument({data:bytes.slice(),isEvalSupported:false,useSystemFonts:true});
+  try{pdf=await loadingTask.promise}catch{await loadingTask.destroy();throw Error('PDF nicht lesbar oder passwortgeschützt. Bitte eine ungeschützte PDF-Datei verwenden.')}
   const comments=[];let hasText=false;
   try{for(let p=1;p<=pdf.numPages;p++){
    const page=await pdf.getPage(p);const content=await page.getTextContent();hasText ||= content.items.some(i=>i.str?.trim());
    for(const a of await page.getAnnotations())if(a.contentsObj?.str?.trim())comments.push(`Seite ${p}${a.titleObj?.str?' · '+a.titleObj.str:''}: ${a.contentsObj.str}`);
-  }return {text:comments.length?'ANMERKUNGEN AUS DEM PDF\n\n'+comments.join('\n\n'):'',original:base64(bytes),warning:`${pdf.numPages} Originalseiten werden unverändert angehängt.${!hasText?' Keine Textebene erkannt; keine automatische Texterkennung.':''}${comments.length?' Anmerkungen zusätzlich als Text übernommen.':' Sichtbare Korrekturen bleiben im Original erhalten.'}`};}finally{await pdf.destroy()}
+  }return {text:comments.length?'ANMERKUNGEN AUS DEM PDF\n\n'+comments.join('\n\n'):'',original:base64(bytes),warning:`${pdf.numPages} Originalseiten werden angehängt und nummeriert.${!hasText?' Keine Textebene erkannt; keine automatische Texterkennung.':''}${comments.length?' Anmerkungen zusätzlich als Text übernommen.':' Sichtbare Korrekturen bleiben im Original erhalten.'}`};}finally{await loadingTask.destroy()}
  }
  let text=decode(bytes);
  if(['html','htm'].includes(ext)){const doc=new DOMParser().parseFromString(text,'text/html');doc.querySelectorAll('script,style,iframe,object,noscript').forEach(e=>e.remove());doc.querySelectorAll('br').forEach(e=>e.replaceWith('\n'));doc.querySelectorAll('p,div,li,tr,h1,h2,h3,h4').forEach(e=>e.append('\n'));doc.querySelectorAll('td,th').forEach(e=>e.append('\t'));text=doc.body.textContent}
