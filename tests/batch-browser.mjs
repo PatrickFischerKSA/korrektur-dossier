@@ -9,6 +9,7 @@ const pdf=await PDFDocument.create();const font=await pdf.embedFont(StandardFont
 const files=[];for(let i=0;i<33;i++){const stem=`S4d_Testperson${i}`;files.push({name:stem+'_Fehlerliste.pdf',mimeType:'application/pdf',buffer:pdfBytes},{name:stem+'_mit_Randbemerkungen.docx',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:docx},{name:stem+'_mit_Randbemerkungen-korrektur.docx',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:docx});}
 files.push({name:'S4d_Testperson33_Kommentar.txt',mimeType:'text/plain',buffer:Buffer.from('Hundertste Datei')});
 const browser=await chromium.launch({channel:'chrome'});const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(process.env.APP_URL||'http://127.0.0.1:5178/');
+await page.locator('#auto-zip').uncheck();
 await page.evaluate(()=>{window.progressValues=[];new MutationObserver(()=>{const p=document.querySelector('#import-meter');if(p)window.progressValues.push(Number(p.value))}).observe(document.querySelector('#app'),{subtree:true,childList:true})});
 await page.locator('#files').setInputFiles(files);await page.waitForFunction(()=>document.querySelector('#import-progress')?.textContent.includes('100 von 100 Dateien verarbeitet'),{},{timeout:120000});
 assert.match(await page.locator('.batch-summary').textContent(),/33 vollständige Dossiers · 1 unvollständig · 0 Dateien zu klären/);assert.equal(await page.locator('[data-select]').count(),34);
