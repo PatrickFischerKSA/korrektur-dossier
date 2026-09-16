@@ -4,12 +4,17 @@ Deutschsprachige Web-App zum Zusammenstellen von Fehlerlisten, korrigierten Text
 
 ## Verwendung
 
-1. Dossier benennen, Name und Klasse ergänzen.
-2. Den Bereich **Fehlerliste**, **Korrigierter Text** oder **Kommentare** wählen.
-3. Dateien ablegen oder Text direkt einfügen. Jede Datei wird dem aktuell gewählten Bereich und Dossier zugeordnet.
-4. Mit **Prüfen** Inhalte bearbeiten oder einem anderen Bereich zuordnen.
-5. PDF herunterladen; mit **Neues Dossier** weitere Personen anlegen und mit **Alle PDFs als ZIP** gesammelt exportieren.
-6. Vor dem Schliessen **Projekt sichern**. Die JSON-Datei enthält alle Inhalte und PDF-Originale. **Projekt öffnen** fügt gesicherte Dossiers dem aktuellen Projekt hinzu.
+1. Alle Dateien gemeinsam auswählen oder ablegen. Die aktuelle Registerkarte hat keinen Einfluss auf die automatische Zuordnung.
+2. Das Namensschema ist `Klassenbezeichnung_VornameNachname_Dokumentart`, beispielsweise:
+   - `S4d_AnnaMeier_Fehlerliste.docx`
+   - `S4d_AnnaMeier_Text_mit_Randbemerkungen.pdf`
+   - `S4d_AnnaMeier_Kommentar.txt`
+3. Klasse und Name bilden den gemeinsamen Schlüssel. Gleiche Namen in unterschiedlichen Klassen bleiben getrennt. Auch zeitversetzte Uploads ergänzen das passende Dossier. Die Erkennung toleriert übliche Trennzeichen, CamelCase, Gross-/Kleinschreibung, Umlaute/ae/oe/ue und explizite Versionszusätze wie `_v2` oder `_final`. Sie verwendet keinen unscharfen Namensabgleich.
+4. Erkannte Arten: Fehlerliste/Fehlerübersicht/Fehlerprotokoll/Fehleranalyse; Text mit Randbemerkungen/Randkommentaren, korrigierter Text, Text/Aufsatz; Kommentar/Gesamtkommentar/Schlusskommentar/Feedback/Rückmeldung/Beurteilung.
+5. Unter **Zuordnung klären** unbekannte oder mehrdeutige Namen manuell einem Dossier und einer Dokumentart zuweisen. Doppelte Arten überschreiben niemals vorhandene Dateien. Bei zwei Versionen die nicht benötigte Quelle entfernen und dann die gewünschte zuordnen.
+6. Ein vollständiges Dossier enthält **genau eine Fehlerliste, einen Text mit Randbemerkungen und einen Kommentar**. Fehlende und doppelte Arten werden angezeigt. PDF-Export ist erst bei vollständigen Dossiers möglich; der ZIP-Export setzt vollständige befüllte Dossiers und keine offenen Zuordnungen voraus.
+7. Mit **Prüfen** Inhalte bearbeiten und bei Bedarf Dokumentart oder Dossier ändern. Bereits belegte Arten werden geschützt. Direkte Texteingabe bleibt als manuelle Alternative für einen noch leeren Bereich erhalten.
+8. Vor dem Schliessen **Projekt sichern**. Die JSON-Datei enthält alle Inhalte, PDF-Originale, Zuordnungsschlüssel und ungeklärte Dateien. **Projekt öffnen** fügt gesicherte Dossiers dem aktuellen Projekt hinzu.
 
 ## Formate und Grenzen
 

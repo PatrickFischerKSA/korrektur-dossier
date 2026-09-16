@@ -8,10 +8,17 @@ export function validateProject(value){
   if(!d||!Array.isArray(d.sources)||d.sources.length>500)throw Error('Ungültige Quellenliste.');
   for(const k of ['title','person','group','date'])if(typeof d[k]!=='string'||d[k].length>1000)throw Error('Ungültige Dossierangaben.');
   if(d.date&&!/^\d{4}-\d{2}-\d{2}$/.test(d.date))throw Error('Ungültiges Datum.');
-  return {id:crypto.randomUUID(),title:d.title,person:d.person,group:d.group,date:d.date,cover:d.cover!==false,sources:d.sources.map(s=>{
+  return {id:crypto.randomUUID(),title:d.title,person:d.person,group:d.group,date:d.date,cover:d.cover!==false,...(typeof d.matchKey==='string'?{matchKey:d.matchKey.slice(0,1000)}:{}),sources:d.sources.map(s=>{
    if(!s||!['errors','text','comments'].includes(s.kind)||typeof s.name!=='string'||typeof s.text!=='string'||s.text.length>10_000_000)throw Error('Ungültige Quelle.');
    if(s.original!==undefined&&(typeof s.original!=='string'||s.original.length>MAX_FILE*1.4||!/^JVBER[A-Za-z0-9+/=\s]*$/.test(s.original)))throw Error('Ungültiger PDF-Anhang.');
    return {id:crypto.randomUUID(),kind:s.kind,name:s.name.slice(0,500),text:s.text,warning:typeof s.warning==='string'?s.warning:'',...(s.original?{original:s.original}:{})};
   })};
  });
+}
+export function validatePending(value){
+ if(value===undefined)return [];
+ if(!Array.isArray(value)||value.length>500)throw Error('Ungültige Liste offener Zuordnungen.');
+ return value.map(s=>{if(!s||typeof s.reason!=='string'||typeof s.suggestedName!=='string')throw Error('Ungültige offene Zuordnung.');const kind=['errors','text','comments'].includes(s.kind)?s.kind:null;
+ const checked=validateProject({format:'korrektur-dossier',version:1,dossiers:[{title:'',person:'',group:'',date:'',sources:[{...s,kind:kind||'text'}]}]})[0].sources[0];
+ return {...checked,kind,reason:s.reason.slice(0,1000),suggestedName:s.suggestedName.slice(0,1000),target:''};});
 }
