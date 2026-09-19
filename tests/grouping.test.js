@@ -39,3 +39,21 @@ test('different students/classes and duplicate document versions remain distinct
  assert.equal(a.key,identifyFilename('KS5_LeaMüller_mit_Randbemerkungen.docx').key);
  assert.equal(completeness({sources:[{kind:'text'},{kind:'text'},{kind:'errors'},{kind:'comments'}]}).complete,false);
 });
+test('separator/case variants and aliases match in every upload order',()=>{
+ const orders=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+ for(const sep of ['_','-',' ','–','.'])for(const comment of ['Gutachten','Bewertung','Feedback','Beurteilungsbericht'])for(const order of orders){
+  const names=[`KS5${sep}LeaMüller${sep}Fehlerübersicht (2).pdf`,`ks5${sep}leamueller${sep}mit_Randbemerkungen_korrFiP.docx`,`KS5${sep}LEA_MÜLLER${sep}${comment}_final.docx`];
+  const dossiers=[];
+  for(const i of order){const p=identifyFilename(names[i]);assert.equal(p.reason,'',names[i]);let d=matchingDossiers(dossiers,p.key)[0];if(!d){d={matchKey:p.key,sources:[]};dossiers.push(d)}d.sources.push({kind:p.kind})}
+  assert.equal(dossiers.length,1);assert.ok(completeness(dossiers[0]).complete);
+ }
+});
+test('unknown trailing metadata is flagged instead of creating a false person',()=>{
+ const p=identifyFilename('KS5_LeaMüller_mit_Randbemerkungen_unbekannterZusatz.docx');assert.match(p.reason,/Unbekannter Zusatz/);assert.equal(p.name,'Lea Müller');
+ assert.ok(identifyFilename('KS5_LeaMüller_Text_Kommentar.docx').reason);
+});
+test('spacing tolerance never selects arbitrarily among multiple candidates',()=>{
+ const ds=[{matchKey:'ks5 lea mueller'},{matchKey:'ks5 leamueller'}];assert.equal(matchingDossiers(ds,'KS5 LEAMUELLER').length,2);assert.equal(matchingDossiers(ds,'KS6 LEAMUELLER').length,0);assert.equal(matchingDossiers(ds,'KS5 LENAMUELLER').length,0);
+});
+
+test('class boundaries cannot be swallowed by name-spacing tolerance',()=>{assert.equal(matchingDossiers([{matchKey:'ks5 a nna'}],'ks5a nna').length,0)});
