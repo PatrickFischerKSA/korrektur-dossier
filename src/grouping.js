@@ -1,5 +1,5 @@
 export const roles={errors:'Fehlerliste',text:'Text mit Randbemerkungen',comments:'Kommentar'};
-export function nameKey(value){return String(value).toLocaleLowerCase('de').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').normalize('NFKD').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
+export function nameKey(value){return String(value).normalize('NFC').toLocaleLowerCase('de').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').normalize('NFKD').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
 const rules=[
  // The correction workshop exports its assessment using the original text's stem.
  // Consume the entire compound before considering the generic text markers.
@@ -10,13 +10,18 @@ const rules=[
  ['text',/\b(?:text|aufsatz|korrigiert(?:er|e|es|en)?)\b/gi],
 ];
 export function identifyFilename(filename){
+ filename=String(filename).normalize('NFC');
  const stem=filename.replace(/\.[^.]+$/,'').replace(/([a-zäöüß])([A-ZÄÖÜ])/g,'$1 $2');
  // Keep offsets stable when matching umlauts by replacing them with one-character equivalents.
  let work=stem.toLowerCase().replace(/ä/g,'a').replace(/ö/g,'o').replace(/ü/g,'u').replace(/[_.,()[\]{}–—-]+/g,' ');
  // Match both transliterated and original spellings while retaining the original display name.
  const matches=[];
+ // Teacher initials are metadata, including CamelCase variants such as korrFiP.
+ // Restrict this to a suffix (optionally before an export role/version).
+ work=work.replace(/\bkorr(?!ektur\b|igiert)\s*(?:[a-z]{2,5}|[a-z]{1,4}\s+[a-z])\b(?=\s*(?:(?:korrektur|kommentar|gutachten|fehlerliste)\s*)?(?:v\s*\d+|final)?\s*$)/g,(match,offset)=>{matches.push({start:offset,end:offset+match.length});return ' '.repeat(match.length)});
+
  for(const [kind,re]of rules){const pattern=new RegExp(re.source.replace('fehleruebersicht','fehler(?:ue|u)bersicht').replace('rueckmeldung','r(?:ue|u)ckmeldung'),re.flags);work=work.replace(pattern,(match,offset)=>{matches.push({kind,start:offset,end:offset+match.length});return ' '.repeat(match.length)})}
- const kinds=[...new Set(matches.map(m=>m.kind))];
+ const kinds=[...new Set(matches.filter(m=>m.kind).map(m=>m.kind))];
  let name=stem.split('').map((c,i)=>matches.some(m=>i>=m.start&&i<m.end)?' ':c).join('');
  name=name.replace(/(?:^|[\s_.-])(?:v(?:ersion)?\s*\d+(?:\.\d+)*|final|entwurf|korrigiert)(?=$|[\s_.-])/gi,' ').replace(/[_.,()[\]{}–—-]+/g,' ').replace(/\s+/g,' ').trim();
  const kind=kinds.length===1?kinds[0]:null;

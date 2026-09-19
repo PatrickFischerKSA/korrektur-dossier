@@ -22,3 +22,20 @@ test('tolerates umlauts, separators, descriptors and explicit versions',()=>{
 test('ambiguous or missing roles and names remain unresolved',()=>{for(const name of ['S4d_AnnaMeier_Abgabe.txt','Fehlerliste.docx','S4d_AnnaMeier_Text_Kommentar.txt'])assert.ok(identifyFilename(name).reason)});
 test('three sources must contain exactly one of each type',()=>{assert.equal(completeness({sources:[{kind:'errors'},{kind:'text'},{kind:'comments'}]}).complete,true);assert.equal(completeness({sources:[{kind:'errors'},{kind:'errors'},{kind:'comments'}]}).complete,false)});
 test('project roundtrip retains routing identity and unresolved sources',()=>{const d={title:'Dossier',person:'Anna Meier',group:'S4d',date:'',matchKey:'s4d anna meier',sources:[]};const loaded=validateProject({format:'korrektur-dossier',version:1,dossiers:[d]});assert.equal(matchingDossiers(loaded,'s4d anna meier').length,1);assert.equal(matchingDossiers([...loaded,...loaded],'s4d anna meier').length,2);assert.equal(matchingDossiers(loaded,'s4e anna meier').length,0);const pending=validatePending([{name:'unknown.txt',kind:null,text:'Text',reason:'Unklar',suggestedName:'Anna'}]);assert.equal(pending[0].kind,null);assert.throws(()=>validatePending([{}]));});
+test('teacher suffixes do not split a triplet or misclassify its assessment',()=>{
+ for(const suffix of ['korrFIP','korrFiP','korrAB','korr AB']){
+  const names=[`KS5_LeaMüller_mit_Randbemerkungen_${suffix}.docx`,`KS5_LeaMüller_mit_Randbemerkungen_${suffix}-korrektur.docx`,'KS5_LeaMüller_Fehlerliste.docx'];
+  const parsed=names.map(identifyFilename);assert.deepEqual(parsed.map(p=>p.kind),['text','comments','errors']);assert.ok(parsed.every(p=>p.key==='ks5 lea mueller'&&p.name==='Lea Müller'&&!p.reason));
+ }
+});
+test('Mac decomposed umlauts and composed umlauts share the same identity',()=>{
+ const filenames=['KS5_LeaMüller_mit_Randbemerkungen_korrFIP.docx'.normalize('NFD'),'KS5_LeaMüller_mit_Randbemerkungen_korrFiP-korrektur.docx','KS5_LeaMueller_Fehlerliste.docx'];
+ assert.equal(new Set(filenames.map(f=>identifyFilename(f).key)).size,1);
+});
+test('different students/classes and duplicate document versions remain distinct',()=>{
+ const a=identifyFilename('KS5_LeaMüller_mit_Randbemerkungen_korrFIP.docx');
+ assert.notEqual(a.key,identifyFilename('KS6_LeaMüller_mit_Randbemerkungen_korrFIP.docx').key);
+ assert.notEqual(a.key,identifyFilename('KS5_LenaMüller_mit_Randbemerkungen_korrFIP.docx').key);
+ assert.equal(a.key,identifyFilename('KS5_LeaMüller_mit_Randbemerkungen.docx').key);
+ assert.equal(completeness({sources:[{kind:'text'},{kind:'text'},{kind:'errors'},{kind:'comments'}]}).complete,false);
+});
